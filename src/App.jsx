@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, StopCircle, Terminal, Sun, Moon } from 'lucide-react';
 import { CryptoUtils } from './utils/crypto';
-import { getInitialSettings } from './utils/settings';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -9,19 +8,22 @@ import LoginScreen from './components/LoginScreen';
 import SettingsModal from './components/SettingsModal';
 import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
+import { useSettings, useSettingsActions } from './contexts/SettingsContext';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [conversations, setConversations] = useState({});
   const [currentChatId, setCurrentChatId] = useState(null);
-  const [settings, setSettings] = useState(getInitialSettings);
   
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [abortController, setAbortController] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [showSettings, setShowSettings] = useState(false);
+
+  const {url, darkMode, model} = useSettings();
+  const {toggleDarkMode} = useSettingsActions();
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -30,15 +32,6 @@ export default function App() {
     const hasData = localStorage.getItem('ollama_secure_data');
     if (!hasData) setIsAuthenticated(true);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('ollama_chat_settings', JSON.stringify(settings));
-    if (settings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [settings]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -133,11 +126,11 @@ export default function App() {
       });
       fullPrompt += `Assistant: `;
 
-      const response = await fetch(`${settings.url}/api/generate`, {
+      const response = await fetch(`${url}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: modelOverride || settings.model,
+          model: modelOverride || model,
           prompt: fullPrompt,
           stream: true
         }),
@@ -246,7 +239,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200">
+    <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
       
       <Sidebar 
         conversations={conversations}
@@ -265,13 +258,13 @@ export default function App() {
              {conversations[currentChatId]?.title || 'Select or create a chat'}
            </h2>
            <div className="flex items-center gap-2">
-             <button onClick={() => setSettings(s => ({...s, darkMode: !s.darkMode}))} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                {settings.darkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
+             <button onClick={toggleDarkMode} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                {darkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
              </button>
            </div>
         </div>
 
-        {showSettings && <SettingsModal settings={settings} setSettings={setSettings} />}
+        {showSettings && <SettingsModal />}
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
           {!currentChatId ? (

@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Edit2, Save, RefreshCw, X } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
+import { useConversationUI, useConversationUIActions } from '../contexts/ConversationUIContext';
 
-const MessageItem = ({ msg, idx, onRegenerate, onSaveEdit, isUser }) => {
+const MessageItem = ({ msg, idx, isUser }: { msg: any; idx: number; isUser: boolean }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(msg.content);
+
+  const {saveEditFromIndex, regenerateFromIndex} = useConversationUIActions();
 
   const handleSaveEdit = (regenerate = false) => {
     setIsEditing(false);
     if (regenerate) {
-      onRegenerate(idx, editContent);
+      regenerateFromIndex(idx, editContent);
     } else {
-      onSaveEdit(idx, editContent);
+      saveEditFromIndex(idx, editContent);
     }
   };
 
@@ -78,7 +81,7 @@ const MessageItem = ({ msg, idx, onRegenerate, onSaveEdit, isUser }) => {
               
               {!isUser && (
                 <button 
-                  onClick={() => onRegenerate(idx)}
+                  onClick={() => regenerateFromIndex(idx, null)}
                   className="p-1.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600"
                   title="Regenerate this response"
                 >

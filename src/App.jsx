@@ -8,6 +8,7 @@ import LoginScreen from './components/LoginScreen';
 import SettingsModal from './components/SettingsModal';
 import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
+import SendMessage from './components/SendMessage';
 import { useSettings, useSettingsActions } from './contexts/SettingsContext';
 
 export default function App() {
@@ -305,45 +306,15 @@ export default function App() {
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="max-w-6xl mx-auto relative flex gap-2">
-            {isGenerating ? (
-              <button 
-                onClick={stopGeneration}
-                className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white rounded-xl p-4 font-semibold shadow-lg transition-transform active:scale-95"
-              >
-                <StopCircle className="w-5 h-5" /> Stop Generation
-              </button>
-            ) : (
-              <>
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  disabled={!currentChatId}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl p-4 border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 outline-none resize-none h-[60px] max-h-[200px] shadow-inner transition-all"
-                />
-                <button 
-                  onClick={sendMessage}
-                  disabled={!input.trim() || !currentChatId}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white p-4 rounded-xl shadow-lg transition-all disabled:cursor-not-allowed transform active:scale-90"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
-          <div className="text-center mt-2 text-xs text-gray-400">
-             Ollama Local • Encrypted Storage
-          </div>
-        </div>
+        <SendMessage
+          sendMessage={sendMessage}
+          setInput={setInput}
+          isGenerating={isGenerating}
+          stopGeneration={stopGeneration}
+          input={input}
+          currentChatId={currentChatId}
+          inputRef={inputRef}
+        />
       </div>
     </div>
   );

@@ -10,12 +10,19 @@ import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
 import SendMessage from './components/SendMessage';
 import { useSettings, useSettingsActions } from './contexts/SettingsContext';
+import { useConversations, useConversationsActions} from './contexts/ConversationsContext';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [conversations, setConversations] = useState({});
-  const [currentChatId, setCurrentChatId] = useState(null);
+  const {
+    conversations,
+    currentChatId,
+    isAuthenticated
+  } = useConversations();
+  const {
+    createNewChat,
+    setCurrentChatId,
+    updateCurrentChat
+  } = useConversationsActions();
   
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -41,70 +48,6 @@ export default function App() {
   useEffect(() => {
     scrollToBottom();
   }, [conversations, currentChatId]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const encryptedData = localStorage.getItem('ollama_secure_data');
-    if (!encryptedData) {
-      setConversations({});
-      setIsAuthenticated(true);
-      saveData({}, password);
-    } else {
-      const decrypted = await CryptoUtils.decrypt(encryptedData, password);
-      if (decrypted) {
-        setConversations(decrypted);
-        setIsAuthenticated(true);
-      } else {
-        alert("Incorrect password or corrupted data.");
-      }
-    }
-  };
-
-  const saveData = async (data, pwd = password) => {
-    const encrypted = await CryptoUtils.encrypt(data, pwd);
-    if (encrypted) {
-      localStorage.setItem('ollama_secure_data', encrypted);
-    }
-  };
-
-  const createNewChat = () => {
-    const id = Date.now().toString();
-    const newChat = {
-      id,
-      title: 'New Conversation',
-      messages: [],
-      systemPrompt: 'You are a helpful AI assistant.',
-      createdAt: Date.now()
-    };
-    const updated = { ...conversations, [id]: newChat };
-    setConversations(updated);
-    setCurrentChatId(id);
-    setSystemPrompt(newChat.systemPrompt);
-    saveData(updated);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  const updateCurrentChat = (updater) => {
-    if (!currentChatId) return;
-    setConversations(prev => {
-      const chat = prev[currentChatId];
-      const updatedChat = updater(chat);
-      const newConversations = { ...prev, [currentChatId]: updatedChat };
-      saveData(newConversations);
-      return newConversations;
-    });
-  };
-
-  const deleteChat = (id, e) => {
-    e.stopPropagation();
-    if (confirm('Delete this conversation?')) {
-      const updated = { ...conversations };
-      delete updated[id];
-      setConversations(updated);
-      saveData(updated);
-      if (currentChatId === id) setCurrentChatId(null);
-    }
-  };
 
   const stopGeneration = () => {
     if (abortController) {
@@ -236,19 +179,14 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen password={password} setPassword={setPassword} handleLogin={handleLogin} />;
+    return <LoginScreen />;
   }
 
   return (
     <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
       
       <Sidebar 
-        conversations={conversations}
-        currentChatId={currentChatId}
-        setCurrentChatId={setCurrentChatId}
         setSystemPrompt={setSystemPrompt}
-        deleteChat={deleteChat}
-        createNewChat={createNewChat}
         setShowSettings={setShowSettings}
       />
 

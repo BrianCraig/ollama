@@ -1,8 +1,16 @@
-import React from 'react';
 import { Lock, Key } from 'lucide-react';
+import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
 
-const LoginScreen = ({ password, setPassword, handleLogin }) => {
+const LoginScreen = ({ }) => {
   const hasData = localStorage.getItem('ollama_secure_data');
+
+  const { password } = useConversations();
+  const { setPassword, login, } = useConversationsActions();
+
+  const handleLogin = async (e: any) => {
+    e.preventDefault();
+    login();
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">

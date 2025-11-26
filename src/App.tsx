@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, StopCircle, Terminal, Sun, Moon } from 'lucide-react';
-import { CryptoUtils } from './utils/crypto';
+import { useState, useEffect, useRef } from 'react';
+import { Terminal, Sun, Moon } from 'lucide-react';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -10,7 +9,8 @@ import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
 import SendMessage from './components/SendMessage';
 import { useSettings, useSettingsActions } from './contexts/SettingsContext';
-import { useConversations, useConversationsActions} from './contexts/ConversationsContext';
+import { useConversations, useConversationsActions } from './contexts/ConversationsContext';
+import { useConversationUI } from './contexts/ConversationUIContext';
 
 export default function App() {
   const {
@@ -19,17 +19,16 @@ export default function App() {
     isAuthenticated
   } = useConversations();
   const {
-    updateCurrentChat
-  } = useConversationsActions();
-  
-  const [isGenerating, setIsGenerating] = useState(false);
+    isGenerating
+  } = useConversationUI();
+
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [showSettings, setShowSettings] = useState(false);
 
-  const {darkMode} = useSettings();
-  const {toggleDarkMode} = useSettingsActions();
+  const { darkMode } = useSettings();
+  const { toggleDarkMode } = useSettingsActions();
 
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,23 +44,23 @@ export default function App() {
 
   return (
     <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
-      
-      <Sidebar 
+
+      <Sidebar
         setSystemPrompt={setSystemPrompt}
         setShowSettings={setShowSettings}
       />
 
       <div className="flex-1 flex flex-col relative min-w-0">
-        
+
         <div className="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 bg-white dark:bg-gray-900">
-           <h2 className="font-semibold text-lg truncate max-w-xl">
-             {conversations[currentChatId]?.title || 'Select or create a chat'}
-           </h2>
-           <div className="flex items-center gap-2">
-             <button onClick={toggleDarkMode} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                {darkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
-             </button>
-           </div>
+          <h2 className="font-semibold text-lg truncate max-w-xl">
+            {conversations[currentChatId!]?.title || 'Select or create a chat'}
+          </h2>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleDarkMode} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         {showSettings && <SettingsModal />}
@@ -74,29 +73,28 @@ export default function App() {
             </div>
           ) : (
             <>
-              <SystemPrompt 
-                systemPrompt={systemPrompt} 
-                setSystemPrompt={setSystemPrompt} 
-                updateCurrentChat={updateCurrentChat} 
+              <SystemPrompt
+                systemPrompt={systemPrompt}
+                setSystemPrompt={setSystemPrompt}
               />
 
               {conversations[currentChatId].messages.map((msg, idx) => (
-                <MessageItem 
-                  key={msg.id || idx} 
-                  msg={msg} 
+                <MessageItem
+                  key={msg.id || idx}
+                  msg={msg}
                   idx={idx}
                   isUser={msg.role === 'user'}
                 />
               ))}
-              
+
               {isGenerating && (
-                 <div className="max-w-6xl mx-auto w-full flex justify-start animate-pulse">
-                    <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 flex items-center gap-2">
-                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
-                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
-                    </div>
-                 </div>
+                <div className="max-w-6xl mx-auto w-full flex justify-start animate-pulse">
+                  <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </>

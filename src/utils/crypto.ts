@@ -1,5 +1,5 @@
 export const CryptoUtils = {
-  deriveKey: async (password, salt) => {
+  deriveKey: async (password: string, salt: string) => {
     const enc = new TextEncoder();
     const keyMaterial = await window.crypto.subtle.importKey(
       "raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]
@@ -18,13 +18,13 @@ export const CryptoUtils = {
     );
   },
 
-  encrypt: async (data, password) => {
+  encrypt: async (data: any, password: string) => {
     try {
       const salt = "ollama-secure-salt";
       const iv = window.crypto.getRandomValues(new Uint8Array(12));
       const key = await CryptoUtils.deriveKey(password, salt);
       const encodedData = new TextEncoder().encode(JSON.stringify(data));
-      
+
       const encrypted = await window.crypto.subtle.encrypt(
         { name: "AES-GCM", iv: iv },
         key,
@@ -40,12 +40,12 @@ export const CryptoUtils = {
     }
   },
 
-  decrypt: async (encryptedPkg, password) => {
+  decrypt: async (encryptedPkg: any, password: string) => {
     try {
       const { iv, data } = JSON.parse(encryptedPkg);
       const salt = "ollama-secure-salt";
       const key = await CryptoUtils.deriveKey(password, salt);
-      
+
       const decrypted = await window.crypto.subtle.decrypt(
         { name: "AES-GCM", iv: new Uint8Array(iv) },
         key,

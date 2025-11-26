@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Edit2, Save, RefreshCw, X } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
-import { useConversationUI, useConversationUIActions } from '../contexts/ConversationUIContext';
+import { useConversationUIActions } from '../contexts/ConversationUIContext';
 
 const MessageItem = ({ msg, idx, isUser }: { msg: any; idx: number; isUser: boolean }) => {
   const [isEditing, setIsEditing] = useState(false);

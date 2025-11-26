@@ -12,8 +12,7 @@ const Sidebar = ({
   const {
     createNewChat,
     setCurrentChatId,
-    deleteChat,
-    updateCurrentChat
+    deleteChat
   } = useConversationsActions();
 
   const { } = useConversationsActions();

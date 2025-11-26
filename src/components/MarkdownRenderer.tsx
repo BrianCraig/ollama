@@ -1,13 +1,11 @@
-import React from 'react';
-
-const MarkdownRenderer = ({ content }) => {
+const MarkdownRenderer = ({ content }: { content: (string | null) }) => {
   if (!content) return null;
-  
+
   const parts = content.split(/(```[\s\S]*?```)/g);
-  
+
   return (
     <div className="text-sm leading-relaxed space-y-2">
-      {parts.map((part, i) => {
+      {parts.map((part: string, i: number) => {
         if (part.startsWith('```')) {
           const content = part.slice(3, -3).replace(/^[a-z]+\n/, '');
           const lang = part.match(/```([a-z]*)\n/)?.[1] || 'text';

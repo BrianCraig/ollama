@@ -2,7 +2,6 @@ import { Plus, MessageSquare, Trash2, Settings } from 'lucide-react';
 import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
 
 const Sidebar = ({
-  setSystemPrompt,
   setShowSettings
 }: any) => {
   const {
@@ -42,10 +41,10 @@ const Sidebar = ({
           .map(chat => (
             <div
               key={chat.id}
-              onClick={() => { setCurrentChatId(chat.id); setSystemPrompt(chat.systemPrompt || ''); }}
+              onClick={() => setCurrentChatId(chat.id)}
               className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${currentChatId === chat.id
-                  ? 'bg-white dark:bg-gray-800 shadow-sm'
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400'
+                ? 'bg-white dark:bg-gray-800 shadow-sm'
+                : 'hover:bg-gray-200 dark:hover:bg-gray-900 text-gray-600 dark:text-gray-400'
                 }`}
             >
               <div className="flex items-center gap-3 overflow-hidden">

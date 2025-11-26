@@ -22,7 +22,6 @@ export default function App() {
     isGenerating
   } = useConversationUI();
 
-  const [systemPrompt, setSystemPrompt] = useState('You are a helpful AI assistant.');
   const [showSettings, setShowSettings] = useState(false);
 
   const { darkMode } = useSettings();
@@ -46,7 +45,6 @@ export default function App() {
     <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
 
       <Sidebar
-        setSystemPrompt={setSystemPrompt}
         setShowSettings={setShowSettings}
       />
 
@@ -73,10 +71,7 @@ export default function App() {
             </div>
           ) : (
             <>
-              <SystemPrompt
-                systemPrompt={systemPrompt}
-                setSystemPrompt={setSystemPrompt}
-              />
+              <SystemPrompt />
 
               {conversations[currentChatId].messages.map((msg, idx) => (
                 <MessageItem

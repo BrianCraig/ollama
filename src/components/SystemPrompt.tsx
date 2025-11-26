@@ -1,10 +1,16 @@
 import { ChevronDown } from 'lucide-react';
-import { useConversationsActions } from '../contexts/ConversationsContext';
+import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
 
-const SystemPrompt = ({ systemPrompt, setSystemPrompt }: any) => {
+const SystemPrompt = () => {
+  const {
+    conversations,
+    currentChatId
+  } = useConversations();
   const {
     updateCurrentChat
   } = useConversationsActions();
+
+  if (currentChatId == null) return null;
 
   return (
     <div className="max-w-6xl mx-auto w-full mb-8">
@@ -16,9 +22,8 @@ const SystemPrompt = ({ systemPrompt, setSystemPrompt }: any) => {
         <div className="p-3 pt-0">
           <textarea
             className="w-full bg-transparent text-sm text-gray-600 dark:text-gray-300 resize-none outline-none min-h-[80px]"
-            value={systemPrompt}
+            value={conversations[currentChatId].systemPrompt}
             onChange={(e) => {
-              setSystemPrompt(e.target.value);
               updateCurrentChat(c => ({ ...c, systemPrompt: e.target.value }));
             }}
             placeholder="Define how the AI should behave..."

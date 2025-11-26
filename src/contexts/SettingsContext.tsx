@@ -15,7 +15,7 @@ type Settings = LocalStorageSettings & StateSettings;
 const defaultSettingsData: LocalStorageSettings = {
     "url": "http://localhost:11434",
     "model": "gemma3:12b",
-    "darkMode": false
+    "darkMode": window.matchMedia("(prefers-color-scheme: dark)").matches
 };
 
 const SettingsValueContext = createContext<Settings>({ ...defaultSettingsData, settingsModal: false });
@@ -41,6 +41,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         localStorage.setItem('ollama_chat_settings', JSON.stringify(settings));
     }, [settings])
+
+    useEffect(() => {
+        const root = typeof document !== 'undefined' ? document.documentElement : null;
+        if (!root) return;
+        if (settings.darkMode) {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+    }, [settings.darkMode]);
 
     const actions = useMemo(() => ({
         toggleDarkMode: () => setSettings(s => ({ ...s, darkMode: !s.darkMode })),

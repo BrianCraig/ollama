@@ -39,7 +39,7 @@ export default function App() {
   }
 
   return (
-    <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
+    <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200`}>
 
       <Sidebar />
 

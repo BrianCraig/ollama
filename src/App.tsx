@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Terminal, Sun, Moon } from 'lucide-react';
 
-// Components
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
 import SettingsModal from './components/SettingsModal';
@@ -9,7 +8,7 @@ import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
 import SendMessage from './components/SendMessage';
 import { useSettings, useSettingsActions } from './contexts/SettingsContext';
-import { useConversations, useConversationsActions } from './contexts/ConversationsContext';
+import { useConversations } from './contexts/ConversationsContext';
 import { useConversationUI } from './contexts/ConversationUIContext';
 
 export default function App() {
@@ -22,9 +21,7 @@ export default function App() {
     isGenerating
   } = useConversationUI();
 
-  const [showSettings, setShowSettings] = useState(false);
-
-  const { darkMode } = useSettings();
+  const { darkMode, settingsModal } = useSettings();
   const { toggleDarkMode } = useSettingsActions();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,9 +41,7 @@ export default function App() {
   return (
     <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200 ${darkMode ? 'dark' : ''}`}>
 
-      <Sidebar
-        setShowSettings={setShowSettings}
-      />
+      <Sidebar />
 
       <div className="flex-1 flex flex-col relative min-w-0">
 
@@ -61,7 +56,7 @@ export default function App() {
           </div>
         </div>
 
-        {showSettings && <SettingsModal />}
+        {settingsModal && <SettingsModal />}
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
           {!currentChatId ? (

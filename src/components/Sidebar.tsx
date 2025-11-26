@@ -1,9 +1,10 @@
 import { Plus, MessageSquare, Trash2, Settings } from 'lucide-react';
 import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
+import { useSettingsActions } from '../contexts/SettingsContext';
 
-const Sidebar = ({
-  setShowSettings
-}: any) => {
+const Sidebar = ({ }) => {
+  const { toggleSettingsModal } = useSettingsActions();
+
   const {
     conversations,
     currentChatId
@@ -63,7 +64,7 @@ const Sidebar = ({
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-950">
         <button
-          onClick={() => setShowSettings((prev: boolean) => !prev)}
+          onClick={toggleSettingsModal}
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors w-full"
         >
           <Settings className="w-4 h-4" />

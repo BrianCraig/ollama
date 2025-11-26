@@ -55,12 +55,12 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const stopGeneration = () => {
-      if (abortController) {
-        abortController.abort();
-        setAbortController(null);
-        setIsGenerating(false);
-      }
-    };
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setIsGenerating(false);
+    }
+  };
 
   const streamResponse = async (systemPrompt: string, chatHistory: Message[], modelOverride = null) => {
     if (!currentChatId) return;
@@ -69,18 +69,12 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
     setAbortController(controller);
 
     try {
-      let fullPrompt = `System: ${systemPrompt}\n\n`;
-      chatHistory.forEach(msg => {
-        fullPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
-      });
-      fullPrompt += `Assistant: `;
-
-      const response = await fetch(`${url}/api/generate`, {
+      const response = await fetch(`${url}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: modelOverride || model,
-          prompt: fullPrompt,
+          messages: [{ role: 'system', message: systemPrompt }, ...chatHistory],
           stream: true
         }),
         signal: controller.signal
@@ -107,8 +101,13 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
           if (!line.trim()) continue;
           try {
             const json = JSON.parse(line);
-            if (json.response) {
-              botMessageContent += json.response;
+            if (json.message) {
+              const msg = json.message;
+              if (typeof msg !== 'object' || msg === null || msg.role !== 'assistant' || typeof msg.content !== 'string') {
+                console.warn(`Unexpected streamed token:`, msg);
+                continue;
+              }
+              botMessageContent += msg.content;
               updateCurrentChat(chat => {
                 const msgs = [...chat.messages];
                 msgs[msgs.length - 1].content = botMessageContent;
@@ -135,10 +134,10 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
 
   const sendMessage = async () => {
     if (!input.trim() || !currentChatId) return;
-    
+
     const newMessage: Message = { role: 'user', content: input, id: Date.now() };
     const currentChat = conversations[currentChatId];
-    
+
     updateCurrentChat(chat => ({
       ...chat,
       messages: [...chat.messages, newMessage]
@@ -151,33 +150,33 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
 
     await streamResponse(currentChat.systemPrompt, [...currentChat.messages, newMessage]);
   };
-  
-  const saveEditFromIndex = (index:number, newContent:string) => {
+
+  const saveEditFromIndex = (index: number, newContent: string) => {
     if (!currentChatId || newContent === null) return;
-    
+
     updateCurrentChat(chat => {
       const msgs = [...chat.messages];
       if (msgs[index]) {
-          msgs[index].content = newContent;
+        msgs[index].content = newContent;
       }
       return { ...chat, messages: msgs };
     });
   };
 
-  const regenerateFromIndex = async (index:number, newContent:(string | null) = null) => {
+  const regenerateFromIndex = async (index: number, newContent: (string | null) = null) => {
     if (!currentChatId) return;
     stopGeneration();
-    
+
     const chat = conversations[currentChatId];
     let newMessages = chat.messages.slice(0, index + 1);
-    
+
     if (newContent !== null) {
       newMessages[index].content = newContent;
     }
 
     const targetMsg = chat.messages[index];
     if (targetMsg.role === 'assistant') {
-       newMessages = chat.messages.slice(0, index);
+      newMessages = chat.messages.slice(0, index);
     }
 
     updateCurrentChat(chat => ({ ...chat, messages: newMessages }));

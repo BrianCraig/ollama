@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Message, useConversations, useConversationsActions } from "./ConversationsContext";
 import { useSettings } from "./SettingsContext";
+import { assertOllamaChatResponseChunk, assertOllamaChatResponseFinishedChunk, isOllamaChatResponseStreamChunk } from "../api/Ollama";
 
 type ConversationUIState = {
   input: string;
@@ -100,21 +101,17 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const json = JSON.parse(line);
-            if (json.message) {
-              const msg = json.message;
-              if (typeof msg !== 'object' || msg === null || msg.role !== 'assistant' || typeof msg.content !== 'string') {
-                console.warn(`Unexpected streamed token:`, msg);
-                continue;
-              }
-              botMessageContent += msg.content;
+            const response = JSON.parse(line);
+            assertOllamaChatResponseChunk(response);
+            if (isOllamaChatResponseStreamChunk(response)) {
+              botMessageContent += response.message.content;
               updateCurrentChat(chat => {
                 const msgs = [...chat.messages];
                 msgs[msgs.length - 1].content = botMessageContent;
                 return { ...chat, messages: msgs };
               });
-            }
-            if (json.done) {
+            } else {
+              assertOllamaChatResponseFinishedChunk(response);
               setIsGenerating(false);
             }
           } catch (e) { console.error("Parse error", e); }
@@ -186,7 +183,7 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
   const actions = useMemo<ConversationUIActions>(() => ({
     setInput,
     sendMessage,
-    stopGeneration,
+    stopGeneration, // bug
     saveEditFromIndex,
     regenerateFromIndex,
   }), [currentChatId, input]);

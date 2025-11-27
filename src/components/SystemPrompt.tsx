@@ -1,15 +1,13 @@
 import { ChevronDown } from 'lucide-react';
-import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
+import { useConversations } from '../contexts/ConversationsContext';
 
 const SystemPrompt = () => {
   const {
     conversations,
-    currentChatId
-  } = useConversations();
-  const {
+    currentChatId,
     updateCurrentChat
-  } = useConversationsActions();
-
+  } = useConversations();
+  
   if (currentChatId == null) return null;
 
   return (

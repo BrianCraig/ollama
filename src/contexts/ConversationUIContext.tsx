@@ -8,7 +8,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { Message, useConversations, useConversationsActions } from "./ConversationsContext";
+import { Message, useConversations } from "./ConversationsContext";
 import { useSettings } from "./SettingsContext";
 import { assertOllamaChatResponseChunk, assertOllamaChatResponseFinishedChunk, isOllamaChatResponseStreamChunk } from "../api/Ollama";
 
@@ -45,11 +45,9 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
   const { url, model } = useSettings();
   const {
     conversations,
-    currentChatId
+    currentChatId,
+    updateCurrentChat
   } = useConversations();
-  const {
-    updateCurrentChat,
-  } = useConversationsActions();
 
   const [input, setInput] = useState("");
   const [abortController, setAbortController] = useState<AbortController | null>(null);

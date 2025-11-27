@@ -1,3 +1,5 @@
+import { assertString } from "./asserts";
+
 export const CryptoUtils = {
   deriveKey: async (password: string, salt: string) => {
     const enc = new TextEncoder();
@@ -18,7 +20,8 @@ export const CryptoUtils = {
     );
   },
 
-  encrypt: async (data: any, password: string) => {
+  encrypt: async (data: any, password: unknown) => {
+    assertString(password);
     try {
       const salt = "ollama-secure-salt";
       const iv = window.crypto.getRandomValues(new Uint8Array(12));

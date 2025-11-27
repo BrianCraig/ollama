@@ -5,6 +5,8 @@ import {
   useMemo,
   ReactNode,
   useRef,
+  useEffect,
+  useCallback,
 } from "react";
 import { Message, useConversations, useConversationsActions } from "./ConversationsContext";
 import { useSettings } from "./SettingsContext";
@@ -55,19 +57,33 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const stopGeneration = () => {
-    if (abortController) {
-      abortController.abort();
+  // Refs to hold latest values so callbacks can be stable and not capture stale closures
+  const conversationsRef = useRef(conversations);
+  const currentChatIdRef = useRef(currentChatId);
+  const abortControllerRef = useRef<AbortController | null>(abortController);
+
+  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
+  useEffect(() => { currentChatIdRef.current = currentChatId; }, [currentChatId]);
+  useEffect(() => { abortControllerRef.current = abortController; }, [abortController]);
+
+  const stopGeneration = useCallback(() => {
+    const controller = abortControllerRef.current;
+    if (controller) {
+      controller.abort();
+      // keep state in sync
       setAbortController(null);
+      abortControllerRef.current = null;
       setIsGenerating(false);
     }
-  };
+  }, []);
 
-  const streamResponse = async (systemPrompt: string, chatHistory: Message[], modelOverride = null) => {
-    if (!currentChatId) return;
+  const streamResponse = useCallback(async (systemPrompt: string, chatHistory: Message[], modelOverride: string | null = null) => {
+    const cid = currentChatIdRef.current;
+    if (!cid) return;
     setIsGenerating(true);
     const controller = new AbortController();
     setAbortController(controller);
+    abortControllerRef.current = controller;
 
     try {
       const response = await fetch(`${url}/api/chat`, {
@@ -101,17 +117,17 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
-            const response = JSON.parse(line);
-            assertOllamaChatResponseChunk(response);
-            if (isOllamaChatResponseStreamChunk(response)) {
-              botMessageContent += response.message.content;
+            const parsed = JSON.parse(line);
+            assertOllamaChatResponseChunk(parsed);
+            if (isOllamaChatResponseStreamChunk(parsed)) {
+              botMessageContent += parsed.message.content;
               updateCurrentChat(chat => {
                 const msgs = [...chat.messages];
-                msgs[msgs.length - 1].content = botMessageContent;
+                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: botMessageContent };
                 return { ...chat, messages: msgs };
               });
             } else {
-              assertOllamaChatResponseFinishedChunk(response);
+              assertOllamaChatResponseFinishedChunk(parsed);
               setIsGenerating(false);
             }
           } catch (e) { console.error("Parse error", e); }
@@ -126,73 +142,79 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsGenerating(false);
       setAbortController(null);
+      abortControllerRef.current = null;
     }
-  };
+  }, [url, model, updateCurrentChat]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || !currentChatId) return;
+  const sendMessage = useCallback(async () => {
+    const cid = currentChatIdRef.current;
+    if (!input.trim() || !cid) return;
 
     const newMessage: Message = { role: 'user', content: input, id: Date.now() };
-    const currentChat = conversations[currentChatId];
+    const currentChat = conversationsRef.current[cid];
 
-    updateCurrentChat(chat => ({
-      ...chat,
-      messages: [...chat.messages, newMessage]
-    }));
+    updateCurrentChat(chat => {
+      const wasEmpty = chat.messages.length === 0;
+      return {
+        ...chat,
+        messages: [...chat.messages, newMessage],
+        ...(wasEmpty ? { title: input.slice(0, 30) } : {}),
+      };
+    });
     setInput('');
 
-    if (currentChat.messages.length === 0) {
-      updateCurrentChat(chat => ({ ...chat, title: input.slice(0, 30) }));
-    }
+    await streamResponse(currentChat.systemPrompt, [...(currentChat?.messages || []), newMessage]);
+  }, [input, streamResponse, updateCurrentChat]);
 
-    await streamResponse(currentChat.systemPrompt, [...currentChat.messages, newMessage]);
-  };
-
-  const saveEditFromIndex = (index: number, newContent: string) => {
-    if (!currentChatId || newContent === null) return;
+  const saveEditFromIndex = useCallback((index: number, newContent: string) => {
+    const cid = currentChatIdRef.current;
+    if (!cid) return;
 
     updateCurrentChat(chat => {
       const msgs = [...chat.messages];
       if (msgs[index]) {
-        msgs[index].content = newContent;
+        msgs[index] = { ...msgs[index], content: newContent };
       }
       return { ...chat, messages: msgs };
     });
-  };
+  }, [updateCurrentChat]);
 
-  const regenerateFromIndex = async (index: number, newContent: (string | null) = null) => {
-    if (!currentChatId) return;
+  const regenerateFromIndex = useCallback(async (index: number, newContent: (string | null) = null) => {
+    const cid = currentChatIdRef.current;
+    if (!cid) return;
     stopGeneration();
 
-    const chat = conversations[currentChatId];
+    const chat = conversationsRef.current[cid];
+    if (!chat) return;
+
     let newMessages = chat.messages.slice(0, index + 1);
 
     if (newContent !== null) {
-      newMessages[index].content = newContent;
+      newMessages[index] = { ...newMessages[index], content: newContent };
     }
 
     const targetMsg = chat.messages[index];
-    if (targetMsg.role === 'assistant') {
+    if (targetMsg && targetMsg.role === 'assistant') {
       newMessages = chat.messages.slice(0, index);
     }
 
     updateCurrentChat(chat => ({ ...chat, messages: newMessages }));
     await streamResponse(chat.systemPrompt, newMessages);
-  };
+  }, [stopGeneration, streamResponse, updateCurrentChat]);
 
   const actions = useMemo<ConversationUIActions>(() => ({
     setInput,
     sendMessage,
-    stopGeneration, // bug
+    stopGeneration,
     saveEditFromIndex,
     regenerateFromIndex,
-  }), [currentChatId, input]);
+  }), [setInput, sendMessage, stopGeneration, saveEditFromIndex, regenerateFromIndex]);
 
-  const state: ConversationUIState = {
+  const state: ConversationUIState = useMemo(() => ({
     input,
     isGenerating,
     inputRef,
-  };
+  }), [input, isGenerating, inputRef]);
 
   return (
     <ConversationUIContext.Provider value={state}>
@@ -203,7 +225,6 @@ export function ConversationUIProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// hooks
 export const useConversationUI = () => useContext(ConversationUIContext);
 export const useConversationUIActions = () =>
   useContext(ConversationUIActionsContext);

@@ -42,7 +42,7 @@ const ConversationUIActionsContext = createContext<ConversationUIActions>({
 });
 
 export function ConversationUIProvider({ children }: { children: ReactNode }) {
-  const { url, model } = useSettings();
+  const { url, model } = useSettings().settings;
   const {
     conversations,
     currentChatId,

@@ -1,8 +1,7 @@
-import { useSettings, useSettingsActions } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const SettingsModal = () => {
-  const { url, model } = useSettings();
-  const { setUrl, setModel } = useSettingsActions();
+  const { settings: { url, model }, setUrl, setModel } = useSettings();
 
   return (
     <div className="absolute top-16 left-0 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 z-20 shadow-xl animate-in slide-in-from-top-2">

@@ -7,7 +7,7 @@ import SettingsModal from './components/SettingsModal';
 import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
 import SendMessage from './components/SendMessage';
-import { useSettings, useSettingsActions } from './contexts/SettingsContext';
+import { useSettings } from './contexts/SettingsContext';
 import { useConversations } from './contexts/ConversationsContext';
 import { useConversationUI } from './contexts/ConversationUIContext';
 
@@ -21,8 +21,7 @@ export default function App() {
     isGenerating
   } = useConversationUI();
 
-  const { darkMode, settingsModal } = useSettings();
-  const { toggleDarkMode } = useSettingsActions();
+  const { settings: { darkMode }, settingsModal, toggleDarkMode } = useSettings();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

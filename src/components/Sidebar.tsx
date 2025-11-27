@@ -1,9 +1,9 @@
 import { Plus, MessageSquare, Trash2, Settings } from 'lucide-react';
 import { useConversations } from '../contexts/ConversationsContext';
-import { useSettingsActions } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Sidebar = ({ }) => {
-  const { toggleSettingsModal } = useSettingsActions();
+  const { toggleSettingsModal } = useSettings();
 
   const {
     conversations,

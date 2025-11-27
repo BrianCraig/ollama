@@ -1,5 +1,5 @@
 import { Plus, MessageSquare, Trash2, Settings } from 'lucide-react';
-import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
+import { useConversations } from '../contexts/ConversationsContext';
 import { useSettingsActions } from '../contexts/SettingsContext';
 
 const Sidebar = ({ }) => {
@@ -7,15 +7,11 @@ const Sidebar = ({ }) => {
 
   const {
     conversations,
-    currentChatId
-  } = useConversations();
-  const {
+    currentChatId,
     createNewChat,
     setCurrentChatId,
     deleteChat
-  } = useConversationsActions();
-
-  const { } = useConversationsActions();
+  } = useConversations();
 
   const askDeleteChat = (id: string, e: any) => {
     e.stopPropagation();

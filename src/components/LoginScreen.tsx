@@ -1,11 +1,10 @@
 import { Lock, Key } from 'lucide-react';
-import { useConversations, useConversationsActions } from '../contexts/ConversationsContext';
+import { useConversations } from '../contexts/ConversationsContext';
 
 const LoginScreen = ({ }) => {
   const hasData = localStorage.getItem('ollama_secure_data');
 
-  const { password } = useConversations();
-  const { setPassword, login, } = useConversationsActions();
+  const { password, setPassword, login } = useConversations();
 
   const handleLogin = async (e: any) => {
     e.preventDefault();
@@ -28,8 +27,8 @@ const LoginScreen = ({ }) => {
           <div>
             <label className="block text-gray-700 dark:text-gray-300 text-sm mb-1">Vault Password</label>
             <div className="relative">
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:placeholder-gray-500"
@@ -39,7 +38,7 @@ const LoginScreen = ({ }) => {
               <Key className="absolute right-3 top-3.5 text-gray-400 w-5 h-5 dark:text-gray-500" />
             </div>
           </div>
-          <button 
+          <button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors"
           >

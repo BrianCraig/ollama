@@ -1,21 +1,17 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  ReactNode,
-  useRef,
-  useEffect,
-  useCallback,
-} from "react";
+import { create } from "zustand";
 import { Message, useConversations } from "./ConversationsContext";
 import { useSettings } from "./SettingsContext";
-import { assertOllamaChatResponseChunk, assertOllamaChatResponseFinishedChunk, isOllamaChatResponseStreamChunk } from "../api/Ollama";
+import {
+  assertOllamaChatResponseChunk,
+  assertOllamaChatResponseFinishedChunk,
+  isOllamaChatResponseStreamChunk
+} from "../api/Ollama";
 
 type ConversationUIState = {
   input: string;
   isGenerating: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  abortController: AbortController | null;
 };
 
 type ConversationUIActions = {
@@ -23,206 +19,189 @@ type ConversationUIActions = {
   sendMessage: () => void;
   stopGeneration: () => void;
   saveEditFromIndex: (index: number, newContent: string) => void;
-  regenerateFromIndex: (index: number, newContent: (string | null)) => void;
+  regenerateFromIndex: (index: number, newContent: string | null) => void;
 };
 
-const defaultState: ConversationUIState = {
-  input: "",
-  isGenerating: false,
-  inputRef: { current: null },
-};
+export const useConversationUI = create<ConversationUIState & ConversationUIActions>((set, get) => {
+  const conversationsStore = useConversations.getState();
+  const settingsStore = useSettings.getState();
 
-const ConversationUIContext = createContext<ConversationUIState>(defaultState);
-const ConversationUIActionsContext = createContext<ConversationUIActions>({
-  setInput: () => { },
-  sendMessage: () => { },
-  stopGeneration: () => { },
-  saveEditFromIndex: () => { },
-  regenerateFromIndex: () => { },
-});
+  const updateConvStore = useConversations.getState().updateCurrentChat;
 
-export function ConversationUIProvider({ children }: { children: ReactNode }) {
-  const { url, model } = useSettings().settings;
-  const {
-    conversations,
-    currentChatId,
-    updateCurrentChat
-  } = useConversations();
+  // Keep currentConversation + settings always updated via subscriptions
+  useConversations.subscribe(() => {
+    Object.assign(conversationsStore, useConversations.getState());
+  });
 
-  const [input, setInput] = useState("");
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  useSettings.subscribe(() => {
+    Object.assign(settingsStore, useSettings.getState());
+  });
 
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const streamResponse = async (
+    systemPrompt: string,
+    chatHistory: Message[],
+    modelOverride: string | null = null
+  ) => {
+    const { currentChatId } = conversationsStore;
+    if (!currentChatId) return;
 
-  // Refs to hold latest values so callbacks can be stable and not capture stale closures
-  const conversationsRef = useRef(conversations);
-  const currentChatIdRef = useRef(currentChatId);
-  const abortControllerRef = useRef<AbortController | null>(abortController);
-
-  useEffect(() => { conversationsRef.current = conversations; }, [conversations]);
-  useEffect(() => { currentChatIdRef.current = currentChatId; }, [currentChatId]);
-  useEffect(() => { abortControllerRef.current = abortController; }, [abortController]);
-
-  const stopGeneration = useCallback(() => {
-    const controller = abortControllerRef.current;
-    if (controller) {
-      controller.abort();
-      // keep state in sync
-      setAbortController(null);
-      abortControllerRef.current = null;
-      setIsGenerating(false);
-    }
-  }, []);
-
-  const streamResponse = useCallback(async (systemPrompt: string, chatHistory: Message[], modelOverride: string | null = null) => {
-    const cid = currentChatIdRef.current;
-    if (!cid) return;
-    setIsGenerating(true);
+    const { url, model } = settingsStore.settings;
     const controller = new AbortController();
-    setAbortController(controller);
-    abortControllerRef.current = controller;
+    
+    set({ abortController: controller, isGenerating: true });
 
     try {
       const response = await fetch(`${url}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: modelOverride || model,
-          messages: [{ role: 'system', message: systemPrompt }, ...chatHistory],
+          messages: [{ role: "system", message: systemPrompt }, ...chatHistory],
           stream: true
         }),
         signal: controller.signal
       });
 
-      if (!response.ok) throw new Error('Ollama connection failed. Check URL/CORS.');
-      if (response.body == null) throw new Error('Null body response');
+      if (!response.ok) throw new Error("Ollama connection failed");
+      if (!response.body) throw new Error("Null response body");
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let botMessageContent = '';
+      let botMessageContent = "";
 
-      updateCurrentChat(chat => ({
+      updateConvStore(chat => ({
         ...chat,
-        messages: [...chat.messages, { role: 'assistant', content: '', id: Date.now() }]
+        messages: [
+          ...chat.messages,
+          { role: "assistant", content: "", id: Date.now() }
+        ]
       }));
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        const lines = chunk.split("\n");
+
         for (const line of lines) {
           if (!line.trim()) continue;
+
           try {
             const parsed = JSON.parse(line);
             assertOllamaChatResponseChunk(parsed);
+
             if (isOllamaChatResponseStreamChunk(parsed)) {
               botMessageContent += parsed.message.content;
-              updateCurrentChat(chat => {
+
+              updateConvStore(chat => {
                 const msgs = [...chat.messages];
-                msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content: botMessageContent };
+                msgs[msgs.length - 1] = {
+                  ...msgs[msgs.length - 1],
+                  content: botMessageContent
+                };
                 return { ...chat, messages: msgs };
               });
             } else {
               assertOllamaChatResponseFinishedChunk(parsed);
-              setIsGenerating(false);
+              set({ isGenerating: false });
             }
-          } catch (e) { console.error("Parse error", e); }
+          } catch (e) {
+            console.error("Parse error", e);
+          }
         }
       }
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') {
-        // Aborted manually, ok
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        // fine
       } else {
-        alert(`Error: ${(err as Error).message}. Ensure Ollama is running with OLLAMA_ORIGINS="*"`);
+        alert(
+          `Error: ${err.message}. Ensure Ollama is running with OLLAMA_ORIGINS="*"`
+        );
       }
     } finally {
-      setIsGenerating(false);
-      setAbortController(null);
-      abortControllerRef.current = null;
+      set({ isGenerating: false, abortController: null });
     }
-  }, [url, model, updateCurrentChat]);
+  };
 
-  const sendMessage = useCallback(async () => {
-    const cid = currentChatIdRef.current;
-    if (!input.trim() || !cid) return;
+  return {
+    input: "",
+    isGenerating: false,
+    abortController: null,
+    inputRef: { current: null },
 
-    const newMessage: Message = { role: 'user', content: input, id: Date.now() };
-    const currentChat = conversationsRef.current[cid];
+    setInput: v => set({ input: v }),
 
-    updateCurrentChat(chat => {
-      const wasEmpty = chat.messages.length === 0;
-      return {
-        ...chat,
-        messages: [...chat.messages, newMessage],
-        ...(wasEmpty ? { title: input.slice(0, 30) } : {}),
+    stopGeneration: () => {
+      const controller = get().abortController;
+      if (controller) controller.abort();
+      set({ abortController: null, isGenerating: false });
+    },
+
+    sendMessage: async () => {
+      const { input } = get();
+      const { currentChatId, conversations } = conversationsStore;
+      if (!input.trim() || !currentChatId) return;
+
+      const newMessage: Message = {
+        role: "user",
+        content: input,
+        id: Date.now()
       };
-    });
-    setInput('');
 
-    await streamResponse(currentChat.systemPrompt, [...(currentChat?.messages || []), newMessage]);
-  }, [input, streamResponse, updateCurrentChat]);
+      const currentChat = conversations[currentChatId];
 
-  const saveEditFromIndex = useCallback((index: number, newContent: string) => {
-    const cid = currentChatIdRef.current;
-    if (!cid) return;
+      updateConvStore(chat => {
+        const empty = chat.messages.length === 0;
+        return {
+          ...chat,
+          messages: [...chat.messages, newMessage],
+          ...(empty ? { title: input.slice(0, 30) } : {})
+        };
+      });
 
-    updateCurrentChat(chat => {
-      const msgs = [...chat.messages];
-      if (msgs[index]) {
-        msgs[index] = { ...msgs[index], content: newContent };
+      set({ input: "" });
+
+      await streamResponse(
+        currentChat.systemPrompt,
+        [...(currentChat.messages || []), newMessage]
+      );
+    },
+
+    saveEditFromIndex: (i, newContent) => {
+      const { currentChatId } = conversationsStore;
+      if (!currentChatId) return;
+
+      updateConvStore(chat => {
+        const msgs = [...chat.messages];
+        if (msgs[i]) msgs[i] = { ...msgs[i], content: newContent };
+        return { ...chat, messages: msgs };
+      });
+    },
+
+    regenerateFromIndex: async (i, newContent = null) => {
+      const { currentChatId, conversations } = conversationsStore;
+      if (!currentChatId) return;
+
+      get().stopGeneration();
+
+      const chat = conversations[currentChatId];
+      if (!chat) return;
+
+      let newMessages = chat.messages.slice(0, i + 1);
+
+      if (newContent !== null) {
+        newMessages[i] = { ...newMessages[i], content: newContent };
       }
-      return { ...chat, messages: msgs };
-    });
-  }, [updateCurrentChat]);
 
-  const regenerateFromIndex = useCallback(async (index: number, newContent: (string | null) = null) => {
-    const cid = currentChatIdRef.current;
-    if (!cid) return;
-    stopGeneration();
+      const msg = chat.messages[i];
+      if (msg && msg.role === "assistant") {
+        newMessages = chat.messages.slice(0, i);
+      }
 
-    const chat = conversationsRef.current[cid];
-    if (!chat) return;
+      updateConvStore(chat => ({ ...chat, messages: newMessages }));
 
-    let newMessages = chat.messages.slice(0, index + 1);
-
-    if (newContent !== null) {
-      newMessages[index] = { ...newMessages[index], content: newContent };
+      await streamResponse(chat.systemPrompt, newMessages);
     }
-
-    const targetMsg = chat.messages[index];
-    if (targetMsg && targetMsg.role === 'assistant') {
-      newMessages = chat.messages.slice(0, index);
-    }
-
-    updateCurrentChat(chat => ({ ...chat, messages: newMessages }));
-    await streamResponse(chat.systemPrompt, newMessages);
-  }, [stopGeneration, streamResponse, updateCurrentChat]);
-
-  const actions = useMemo<ConversationUIActions>(() => ({
-    setInput,
-    sendMessage,
-    stopGeneration,
-    saveEditFromIndex,
-    regenerateFromIndex,
-  }), [setInput, sendMessage, stopGeneration, saveEditFromIndex, regenerateFromIndex]);
-
-  const state: ConversationUIState = useMemo(() => ({
-    input,
-    isGenerating,
-    inputRef,
-  }), [input, isGenerating, inputRef]);
-
-  return (
-    <ConversationUIContext.Provider value={state}>
-      <ConversationUIActionsContext.Provider value={actions}>
-        {children}
-      </ConversationUIActionsContext.Provider>
-    </ConversationUIContext.Provider>
-  );
-}
-
-export const useConversationUI = () => useContext(ConversationUIContext);
-export const useConversationUIActions = () =>
-  useContext(ConversationUIActionsContext);
+  };
+});

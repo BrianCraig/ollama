@@ -1,21 +1,19 @@
 import { Send, StopCircle } from 'lucide-react';
-import { useConversationUI, useConversationUIActions } from '../contexts/ConversationUIContext';
+import { useConversationUI } from '../contexts/ConversationUIContext';
 import { useConversations } from '../contexts/ConversationsContext';
 
-export default ({}) => {
+export default ({ }) => {
   const { currentChatId } = useConversations();
   const {
     input,
     isGenerating,
-    inputRef
-  } = useConversationUI();
-  const {
+    inputRef,
     setInput,
     sendMessage,
     stopGeneration
-  } = useConversationUIActions();
+  } = useConversationUI();
 
-  
+
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
       <div className="max-w-6xl mx-auto relative flex gap-2">

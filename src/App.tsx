@@ -17,9 +17,7 @@ export default function App() {
     currentChatId,
     isAuthenticated
   } = useConversations();
-  const {
-    isGenerating
-  } = useConversationUI();
+  const isGenerating = useConversationUI(s => s.isGenerating);
 
   const { settings: { darkMode }, settingsModal, toggleDarkMode } = useSettings();
 

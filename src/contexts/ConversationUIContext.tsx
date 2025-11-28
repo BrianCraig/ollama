@@ -6,11 +6,12 @@ import {
   assertOllamaChatResponseFinishedChunk,
   isOllamaChatResponseStreamChunk
 } from "../api/Ollama";
+import { useGlobalRef } from "../stores/GlobalRefStore";
+import { autoscroll, scrollToBottom } from "../utils/scrolling";
 
 type ConversationUIState = {
   input: string;
   isGenerating: boolean;
-  inputRef: React.RefObject<HTMLTextAreaElement | null>;
   abortController: AbortController | null;
 };
 
@@ -23,6 +24,8 @@ type ConversationUIActions = {
 };
 
 export const useConversationUI = create<ConversationUIState & ConversationUIActions>((set, get) => {
+  const { chatInputRef, messagesRef } = useGlobalRef();
+
   const conversationsStore = useConversations.getState();
   const settingsStore = useSettings.getState();
 
@@ -42,12 +45,16 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
     chatHistory: Message[],
     modelOverride: string | null = null
   ) => {
+    scrollToBottom(messagesRef);
+    // also on the next frame to ensure scroll after new message added
+    requestAnimationFrame(() => scrollToBottom(messagesRef));
+
     const { currentChatId } = conversationsStore;
     if (!currentChatId) return;
 
     const { url, model } = settingsStore.settings;
     const controller = new AbortController();
-    
+
     set({ abortController: controller, isGenerating: true });
 
     try {
@@ -102,10 +109,13 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
                 };
                 return { ...chat, messages: msgs };
               });
+
             } else {
               assertOllamaChatResponseFinishedChunk(parsed);
               set({ isGenerating: false });
             }
+
+            autoscroll(messagesRef);
           } catch (e) {
             console.error("Parse error", e);
           }
@@ -121,6 +131,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
       }
     } finally {
       set({ isGenerating: false, abortController: null });
+      chatInputRef.current?.focus();
     }
   };
 
@@ -128,7 +139,6 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
     input: "",
     isGenerating: false,
     abortController: null,
-    inputRef: { current: null },
 
     setInput: v => set({ input: v }),
 

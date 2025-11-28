@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { CryptoUtils } from "../utils/crypto";
+import { useGlobalRef } from "../stores/GlobalRefStore";
+import { scrollToBottom } from "../utils/scrolling";
 
 type Role = "user" | "assistant";
 
@@ -33,7 +35,9 @@ type ConversationsState = {
 
 const STORAGE_KEY = "ollama_secure_data";
 
-export const useConversations = create<ConversationsState>((set, get) => ({
+const { messagesRef, chatInputRef } = useGlobalRef();
+
+export const useConversations = create<ConversationsState>((set, get) => ({  
   conversations: {},
   currentChatId: null,
   isAuthenticated: false,
@@ -64,6 +68,8 @@ export const useConversations = create<ConversationsState>((set, get) => ({
   },
 
   createNewChat: () => {
+    chatInputRef.current?.focus();
+    
     const id = Date.now().toString();
     const newChat: Chat = {
       id,
@@ -92,7 +98,12 @@ export const useConversations = create<ConversationsState>((set, get) => ({
     save(updated, get().password);
   },
 
-  setCurrentChatId: (id) => set({ currentChatId: id }),
+  setCurrentChatId: (id) => {
+    set({ currentChatId: id });
+    window.requestAnimationFrame(() => { scrollToBottom(messagesRef); });
+    chatInputRef.current?.focus();
+    window.requestAnimationFrame(() => { chatInputRef.current?.focus(); });
+  },
 
   updateCurrentChat: (updater) => {
     const id = get().currentChatId;

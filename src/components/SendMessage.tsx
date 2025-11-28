@@ -1,18 +1,19 @@
 import { Send, StopCircle } from 'lucide-react';
 import { useConversationUI } from '../contexts/ConversationUIContext';
 import { useConversations } from '../contexts/ConversationsContext';
+import { useGlobalRef } from '../stores/GlobalRefStore';
 
 export default ({ }) => {
   const { currentChatId } = useConversations();
   const {
     input,
     isGenerating,
-    inputRef,
     setInput,
     sendMessage,
     stopGeneration
   } = useConversationUI();
 
+  const { chatInputRef } = useGlobalRef();
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -27,7 +28,7 @@ export default ({ }) => {
         ) : (
           <>
             <textarea
-              ref={inputRef}
+              ref={chatInputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {

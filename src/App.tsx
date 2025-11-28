@@ -10,8 +10,10 @@ import SendMessage from './components/SendMessage';
 import { useSettings } from './contexts/SettingsContext';
 import { useConversations } from './contexts/ConversationsContext';
 import { useConversationUI } from './contexts/ConversationUIContext';
+import { useGlobalRef } from './stores/GlobalRefStore';
 
 export default function App() {
+  const { messagesRef } = useGlobalRef();
   const {
     conversations,
     currentChatId,
@@ -20,16 +22,6 @@ export default function App() {
   const isGenerating = useConversationUI(s => s.isGenerating);
 
   const { settings: { darkMode }, settingsModal, toggleDarkMode } = useSettings();
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversations, currentChatId]);
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -55,7 +47,7 @@ export default function App() {
 
         {settingsModal && <SettingsModal />}
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6" ref={messagesRef}>
           {!currentChatId ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
               <Terminal className="w-16 h-16 mb-4" />
@@ -83,7 +75,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </>
           )}
         </div>

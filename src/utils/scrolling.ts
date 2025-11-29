@@ -1,7 +1,7 @@
 import { RefObject } from "react";
 
 export function autoscroll(container: RefObject<HTMLDivElement | null>) {
-  const PIXELS_TO_AUTOSCROLL = 100;
+  const PIXELS_TO_AUTOSCROLL = 140;
   const el = container.current;
   if (!el) return;
   if (el.scrollHeight - el.scrollTop - el.clientHeight < PIXELS_TO_AUTOSCROLL)

@@ -80,7 +80,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         ...chat,
         messages: [
           ...chat.messages,
-          { role: "assistant", content: "", id: Date.now() }
+          { role: "assistant", content: "", id: Date.now(), createdAt: Date.now(), model: modelOverride || settingsStore.settings.model }
         ]
       }));
 
@@ -156,7 +156,8 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
       const newMessage: Message = {
         role: "user",
         content: input,
-        id: Date.now()
+        id: Date.now(),
+        createdAt: Date.now(),
       };
 
       const currentChat = conversations[currentChatId];

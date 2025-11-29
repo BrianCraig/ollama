@@ -47,7 +47,7 @@ export default function App() {
 
         {settingsModal && <SettingsModal />}
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6" ref={messagesRef}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8" ref={messagesRef}>
           {!currentChatId ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
               <Terminal className="w-16 h-16 mb-4" />
@@ -62,19 +62,8 @@ export default function App() {
                   key={msg.id || idx}
                   msg={msg}
                   idx={idx}
-                  isUser={msg.role === 'user'}
                 />
               ))}
-
-              {isGenerating && (
-                <div className="max-w-6xl mx-auto w-full flex justify-start animate-pulse">
-                  <div className="bg-gray-200 dark:bg-gray-800 rounded-lg p-4 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

@@ -3,12 +3,14 @@ import { CryptoUtils } from "../utils/crypto";
 import { useGlobalRef } from "../stores/GlobalRefStore";
 import { scrollToBottom } from "../utils/scrolling";
 
-type Role = "user" | "assistant";
+export type Role = "user" | "assistant" | "system";
 
 export type Message = {
   id: number;
   role: Role;
   content: string;
+  createdAt: number;
+  model?: string;
 };
 
 export type Chat = {

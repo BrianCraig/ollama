@@ -1,16 +1,46 @@
-# React + Vite
+# ollama
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A lightweight React + Vite chat UI for interacting with Ollama-style model backends. This repository provides a small, local-first web interface for conversations — built with Vite, React, and Tailwind. Inspired by WebUI.
 
-Currently, two official plugins are available:
+**Try the full app:** https://briancraig.github.io/ollama/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Features**
+- **Local streaming conversations:** Fully local streaming conversations with LLMs via Ollama — privacy-first and low latency.
+- **Editable conversations:** Modify the complete conversation: edit messages, change roles, and insert messages between existing ones.
+- **Encrypted storage:** Locally encrypted conversations for improved privacy.
+- **Offline support (WIP):** Use the app without internet.
+- **Advanced parameters (WIP):** Tweak temperature, context size, and other model parameters.
+- **Extremelly lightweight:** Around 300kb~ on production, 100kb~ gzipped.
 
-## React Compiler
+**Local Installation**
+- **Requirements:** Node.js (22+ recommended) and `npm`.
+- Clone the repo:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+git clone https://github.com/BrianCraig/ollama.git
+cd ollama
+```
 
-## Expanding the ESLint configuration
+- Install dependencies:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+```
+
+- Run in development mode (hot reload):
+
+```bash
+npm run dev
+```
+
+Open at `http://localhost:5173` (or the address shown by Vite).
+
+**Deploy / Try online**
+- A live demo is available at: `https://briancraig.github.io/ollama/`, make sure to run your local ollama with the following environment variable:
+```
+OLLAMA_ORIGINS="https://briancraig.github.io"
+```
+
+
+**Contributing**
+- Contributions and issues are welcome. Open a PR or issue describing the change or bug.

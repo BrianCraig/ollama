@@ -63,7 +63,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: modelOverride || model,
-          messages: [{ role: "system", message: systemPrompt }, ...chatHistory],
+          messages: [{ role: "system", content: systemPrompt }, ...chatHistory],
           stream: true
         }),
         signal: controller.signal

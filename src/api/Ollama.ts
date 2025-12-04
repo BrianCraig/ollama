@@ -185,3 +185,25 @@ export const assertOllamaPSResponse: (val: unknown) => asserts val is OllamaPSRe
         }
     }
 };
+
+export type OllamaGenerationOptions = {
+    num_ctx?: number            /* ctx window size; default ~4096; range: >=128 */;
+    num_batch?: number          /* tokens processed per batch; default 512; range: >=1 */;
+    num_gpu?: number            /* GPUs to use; default -1 auto */;
+    main_gpu?: number           /* which GPU is primary; default 0 */;
+    use_mmap?: boolean          /* memory-map model */;
+    num_thread?: number         /* CPU threads; default 0 auto; range: >=1 */;
+    num_keep?: number           /* tokens to preserve; default 4; range: >=0 */;
+    seed?: number               /* RNG seed; default -1 random */;
+    num_predict?: number        /* max tokens to generate; default -1 unlimited */;
+    top_k?: number              /* top-k sampling cutoff; default 40; range: >=1 */;
+    top_p?: number              /* nucleus sampling; default 0.9; range: 0–1 */;
+    min_p?: number              /* minimum probability cutoff; default unset; range: 0–1 */;
+    typical_p?: number          /* typical sampling; default 1.0; range: 0–1 */;
+    repeat_last_n?: number      /* lookback for repetition; default 64; range: >=0 */;
+    temperature?: number        /* randomness; default 0.8; range: >0 */;
+    repeat_penalty?: number     /* penalty for repetition; default 1.1; range: >=0 */;
+    presence_penalty?: number   /* penalize new-topic introduction; default 0; range: >=0 */;
+    frequency_penalty?: number  /* penalize token frequency; default 0; range: >=0 */;
+    stop?: string[]             /* custom stop sequences; default undefined */;
+};

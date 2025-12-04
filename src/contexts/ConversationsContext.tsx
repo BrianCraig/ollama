@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { v7 as UUID } from 'uuid';
 import { CryptoUtils } from "../utils/crypto";
 import { useGlobalRef } from "../stores/GlobalRefStore";
 import { scrollToBottom } from "../utils/scrolling";
@@ -6,7 +7,7 @@ import { scrollToBottom } from "../utils/scrolling";
 export type Role = "user" | "assistant" | "system";
 
 export type Message = {
-  id: number;
+  id: string;
   role: Role;
   content: string;
   createdAt: number;
@@ -72,7 +73,7 @@ export const useConversations = create<ConversationsState>((set, get) => ({
   createNewChat: () => {
     chatInputRef.current?.focus();
     
-    const id = Date.now().toString();
+    const id = UUID();
     const newChat: Chat = {
       id,
       title: "New Conversation",

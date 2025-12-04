@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { v7 as UUID } from 'uuid';
 import { Message, useConversations } from "./ConversationsContext";
 import { useSettings } from "./SettingsContext";
 import {
@@ -80,7 +81,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         ...chat,
         messages: [
           ...chat.messages,
-          { role: "assistant", content: "", id: Date.now(), createdAt: Date.now(), model: modelOverride || settingsStore.settings.model }
+          { role: "assistant", content: "", id: UUID(), createdAt: Date.now(), model: modelOverride || settingsStore.settings.model }
         ]
       }));
 
@@ -156,7 +157,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
       const newMessage: Message = {
         role: "user",
         content: input,
-        id: Date.now(),
+        id: UUID(),
         createdAt: Date.now(),
       };
 

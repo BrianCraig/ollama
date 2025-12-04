@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { v7 as UUID } from 'uuid';
 import {
   Edit2,
   Save,
@@ -57,17 +58,37 @@ function useOutsideClick<T extends HTMLElement = HTMLElement>(ref: React.RefObje
   }, [ref, handler]);
 }
 
-const InsertZone = ({ onClick }: { onClick: () => void }) => (
-  <div className="relative h-4 w-full group/insert flex items-center justify-center z-10 my-2">
-    <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={onClick}>
-      <div className="w-full h-px bg-blue-500/30 opacity-0 group-hover/insert:opacity-100 transition-opacity duration-200 absolute top-1/2 left-0 right-0"></div>
-      <div className="opacity-0 group-hover/insert:opacity-100 transition-opacity duration-200 bg-blue-600 text-white rounded-full p-0.5 px-2 shadow-sm flex items-center gap-1 text-[10px] font-medium z-20 transform translate-y-[0.5px]">
-        <Plus className="w-2.5 h-2.5" />
-        <span>Insert</span>
+const InsertZone = ({ beforeId }: { beforeId: string }) => {
+  const updateCurrentChat = useConversations(s => s.updateCurrentChat)
+
+  const onClick = () => {
+    updateCurrentChat(chat => {
+      const copy = { ...chat };
+      const index = copy.messages.findIndex(m => m.id === beforeId);
+      const message: Message = {
+        id: UUID(),
+        content: "",
+        role: "user",
+        createdAt: Date.now(),
+        model: ""
+      }
+      copy.messages = [...copy.messages.slice(0, index), message, ...copy.messages.slice(index)]
+      return copy;
+    })
+  }
+
+  return (
+    <div className="relative h-4 w-full group/insert flex items-center justify-center z-10 my-2">
+      <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={onClick}>
+        <div className="w-full h-px bg-blue-500/30 opacity-0 group-hover/insert:opacity-100 transition-opacity duration-200 absolute top-1/2 left-0 right-0"></div>
+        <div className="opacity-0 group-hover/insert:opacity-100 transition-opacity duration-200 bg-blue-600 text-white rounded-full p-0.5 px-2 shadow-sm flex items-center gap-1 text-[10px] font-medium z-20 transform translate-y-[0.5px]">
+          <Plus className="w-2.5 h-2.5" />
+          <span>Insert</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ActionBtn = ({ icon: Icon, onClick, label, color = "hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100" }: any) => (
   <button onClick={onClick} className={`p-1.5 rounded-sm text-gray-400 transition-all duration-200 ${color}`} title={label}>
@@ -193,12 +214,10 @@ const DisplayArea = ({ content }: { content: string }) => (
 
 const MessageItem = ({
   msg,
-  idx,
-  onInsertMessage
+  idx
 }: {
   msg: Message;
   idx: number;
-  onInsertMessage?: (index: number) => void;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(msg.content);
@@ -218,8 +237,7 @@ const MessageItem = ({
 
   return (
     <div className="w-full flex flex-col">
-      {idx === 0 && <InsertZone onClick={() => onInsertMessage && onInsertMessage(idx)} />}
-
+      <InsertZone beforeId={msg.id} />
       <div className={`
         relative w-full border-l-2 transition-colors duration-200 shadow-sm
         ${config.borderColor}
@@ -248,8 +266,6 @@ const MessageItem = ({
           )}
         </div>
       </div>
-
-      <InsertZone onClick={() => onInsertMessage && onInsertMessage(idx + 1)} />
     </div>
   );
 };

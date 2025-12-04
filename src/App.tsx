@@ -21,7 +21,7 @@ export default function App() {
   } = useConversations();
   const isGenerating = useConversationUI(s => s.isGenerating);
 
-  const { settings: { darkMode }, settingsModal, toggleDarkMode } = useSettings();
+  const { settings: { darkMode }, toggleDarkMode } = useSettings();
 
   if (!isAuthenticated) {
     return <LoginScreen />;
@@ -31,6 +31,7 @@ export default function App() {
     <div className={`flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200`}>
 
       <Sidebar />
+      <SettingsModal />
 
       <div className="flex-1 flex flex-col relative min-w-0">
 
@@ -45,7 +46,7 @@ export default function App() {
           </div>
         </div>
 
-        {settingsModal && <SettingsModal />}
+        
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8" ref={messagesRef}>
           {!currentChatId ? (

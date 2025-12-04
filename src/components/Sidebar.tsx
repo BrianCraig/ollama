@@ -1,10 +1,9 @@
-import { Plus, MessageSquare, Trash2, Settings } from 'lucide-react';
+import { Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import ConnectionButton from './ConnectionButton';
 
 const Sidebar = ({ }) => {
-  const { toggleSettingsModal } = useSettings();
-
   const {
     conversations,
     currentChatId,
@@ -59,13 +58,7 @@ const Sidebar = ({ }) => {
       </div>
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-950">
-        <button
-          onClick={toggleSettingsModal}
-          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors w-full"
-        >
-          <Settings className="w-4 h-4" />
-          <span>Connection Settings</span>
-        </button>
+        <ConnectionButton />
       </div>
     </div>
   );

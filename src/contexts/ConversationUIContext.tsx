@@ -42,7 +42,6 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
   });
 
   const streamResponse = async (
-    systemPrompt: string,
     chatHistory: Message[],
     modelOverride: string | null = null
   ) => {
@@ -64,7 +63,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: modelOverride || model,
-          messages: [{ role: "system", content: systemPrompt }, ...chatHistory],
+          messages: chatHistory,
           stream: true
         }),
         signal: controller.signal
@@ -175,7 +174,6 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
       set({ input: "" });
 
       await streamResponse(
-        currentChat.systemPrompt,
         [...(currentChat.messages || []), newMessage]
       );
     },
@@ -213,7 +211,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
 
       updateConvStore(chat => ({ ...chat, messages: newMessages }));
 
-      await streamResponse(chat.systemPrompt, newMessages);
+      await streamResponse(newMessages);
     }
   };
 });

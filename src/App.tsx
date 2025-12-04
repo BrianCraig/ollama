@@ -4,7 +4,6 @@ import { Terminal, Sun, Moon } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
 import SettingsModal from './components/SettingsModal';
-import SystemPrompt from './components/SystemPrompt';
 import MessageItem from './components/MessageItem';
 import SendMessage from './components/SendMessage';
 import { useSettings } from './contexts/SettingsContext';
@@ -46,27 +45,19 @@ export default function App() {
           </div>
         </div>
 
-        
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-8" ref={messagesRef}>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-0 md:pt-0" ref={messagesRef}>
           {!currentChatId ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50">
               <Terminal className="w-16 h-16 mb-4" />
               <p>Select a conversation to start</p>
             </div>
-          ) : (
-            <>
-              <SystemPrompt />
-
-              {conversations[currentChatId].messages.map((msg, idx) => (
-                <MessageItem
-                  key={msg.id || idx}
-                  msg={msg}
-                  idx={idx}
-                />
-              ))}
-            </>
-          )}
+          ) : conversations[currentChatId].messages.map((msg, idx) => (
+            <MessageItem
+              key={msg.id || idx}
+              msg={msg}
+              idx={idx}
+            />
+          ))}
         </div>
 
         <SendMessage />

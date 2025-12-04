@@ -18,7 +18,6 @@ export type Chat = {
   id: string;
   title: string;
   messages: Message[];
-  systemPrompt: string;
   createdAt: number;
 };
 
@@ -78,7 +77,6 @@ export const useConversations = create<ConversationsState>((set, get) => ({
       id,
       title: "New Conversation",
       messages: [],
-      systemPrompt: "You are a helpful AI assistant.",
       createdAt: Date.now(),
     };
 

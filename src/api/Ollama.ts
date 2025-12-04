@@ -20,6 +20,7 @@ type OllamaChatResponseFinishedData = {
 export type OllamaChatResponseStreamChunk = OllamaChatResponseBase & { done: false };
 export type OllamaChatResponseFinishedChunk = OllamaChatResponseBase & OllamaChatResponseFinishedData & { done: true };
 
+// POST /api/chat
 export type OllamaChatResponseChunk = OllamaChatResponseStreamChunk | OllamaChatResponseFinishedChunk;
 
 export const assertOllamaChatResponseChunk: (val: unknown) => asserts val is OllamaChatResponseChunk = (val) => {
@@ -61,5 +62,126 @@ export const assertOllamaChatResponseFinishedChunk: (val: unknown) => asserts va
         typeof v.eval_duration !== "number"
     ) {
         throw new Error(`Response is not OllamaChatResponseFinishedChunk type: ${JSON.stringify(val)}`);
+    }
+};
+
+// GET /api/version
+export type OllamaVersion = {
+    version: string,
+}
+
+export const assertOllamaVersion: (val: unknown) => asserts val is OllamaVersion = (val) => {
+    if (typeof val !== "object" || val === null) {
+        throw new Error(`Response is not OllamaVersion: ${JSON.stringify(val)}`);
+    }
+    const v = val as OllamaVersion;
+    if (typeof v.version !== "string") {
+        throw new Error(`Response is not OllamaVersion: ${JSON.stringify(val)}`);
+    }
+};
+
+export type OllamaModelDetails = {
+    parent_model: string,
+    format: string,
+    family: string,
+    families: string[],
+    parameter_size: string,
+    quantization_level: string,
+}
+
+export type OllamaTagModel = {
+    name: string,
+    model: string,
+    modified_at: string,
+    size: number,
+    digest: string,
+    details: OllamaModelDetails,
+}
+
+// GET /api/tags
+export type OllamaTagsResponse = {
+    models: OllamaTagModel[],
+}
+
+export const assertOllamaTagsResponse: (val: unknown) => asserts val is OllamaTagsResponse = (val) => {
+    if (typeof val !== "object" || val === null) {
+        throw new Error(`Response is not OllamaTagsResponse: ${JSON.stringify(val)}`);
+    }
+    const v = val as OllamaTagsResponse;
+    if (!Array.isArray(v.models)) {
+        throw new Error(`Response is not OllamaTagsResponse: ${JSON.stringify(val)}`);
+    }
+    for (const m of v.models) {
+        if (typeof m !== "object" || m === null) {
+            throw new Error(`Invalid model in OllamaTagsResponse: ${JSON.stringify(m)}`);
+        }
+        if (
+            typeof m.name !== "string" ||
+            typeof m.model !== "string" ||
+            typeof m.modified_at !== "string" ||
+            typeof m.size !== "number" ||
+            typeof m.digest !== "string" ||
+            typeof m.details !== "object" ||
+            m.details === null ||
+            typeof m.details.parent_model !== "string" ||
+            typeof m.details.format !== "string" ||
+            typeof m.details.family !== "string" ||
+            !Array.isArray(m.details.families) ||
+            typeof m.details.parameter_size !== "string" ||
+            typeof m.details.quantization_level !== "string"
+        ) {
+            throw new Error(`Invalid model in OllamaTagsResponse: ${JSON.stringify(m)}`);
+        }
+    }
+};
+
+
+export type OllamaPSModel = {
+    name: string,
+    model: string,
+    size: number,
+    digest: string,
+    details: OllamaModelDetails,
+    expires_at: string,
+    size_vram: number,
+    context_length: number,
+}
+
+// GET /api/ps
+export type OllamaPSResponse = {
+    models: OllamaPSModel[],
+}
+
+export const assertOllamaPSResponse: (val: unknown) => asserts val is OllamaPSResponse = (val) => {
+    if (typeof val !== "object" || val === null) {
+        throw new Error(`Response is not OllamaPSResponse: ${JSON.stringify(val)}`);
+    }
+    const v = val as OllamaPSResponse;
+    if (!Array.isArray(v.models)) {
+        throw new Error(`Response is not OllamaPSResponse: ${JSON.stringify(val)}`);
+    }
+    for (const m of v.models) {
+        if (typeof m !== "object" || m === null) {
+            throw new Error(`Invalid model in OllamaPSResponse: ${JSON.stringify(m)}`);
+        }
+        if (
+            typeof m.name !== "string" ||
+            typeof m.model !== "string" ||
+            typeof m.size !== "number" ||
+            typeof m.digest !== "string" ||
+            typeof m.details !== "object" ||
+            m.details === null ||
+            typeof m.details.parent_model !== "string" ||
+            typeof m.details.format !== "string" ||
+            typeof m.details.family !== "string" ||
+            !Array.isArray(m.details.families) ||
+            typeof m.details.parameter_size !== "string" ||
+            typeof m.details.quantization_level !== "string" ||
+            typeof m.expires_at !== "string" ||
+            typeof m.size_vram !== "number" ||
+            typeof m.context_length !== "number"
+        ) {
+            throw new Error(`Invalid model in OllamaPSResponse: ${JSON.stringify(m)}`);
+        }
     }
 };

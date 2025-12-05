@@ -20,6 +20,8 @@ const SettingsModal = () => {
 
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [urlInput, setUrlInput] = useState<string>(url);
+  const [urlError, setUrlError] = useState<boolean>(false);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
@@ -140,33 +142,28 @@ const SettingsModal = () => {
             </button>
           </div>
         </div>
-
-        <div className="p-5 space-y-6 max-h-[80vh] overflow-y-auto">
+        <div className="p-5 max-h-[80vh] overflow-y-auto">
+          <div className="py-4 pt-0">
+            <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">Ollama Host</label>
+            <input
+              className={`w-full bg-gray-100 dark:bg-gray-900 border rounded p-2 text-sm ${urlError ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+              value={urlInput}
+              onChange={e => {
+                const val = e.target.value;
+                setUrlInput(val);
+                const isValid = /^https?:\/\/[a-zA-Z0-9.-]+(?:\:[0-9]+)?$/.test(val);
+                setUrlError(!isValid && val.length > 0);
+                if (isValid) setUrl(val);
+              }}
+              placeholder="http://localhost:11434"
+            />
+            {urlError && (
+              <p className="mt-1 text-xs text-red-500">Invalid URL — use e.g. http://localhost:11434</p>
+            )}
+          </div>
           {error && (
             <DiagnosticsPanel />
           )}
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">Ollama Host</label>
-              <input
-                className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                placeholder="http://localhost:11434"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase text-gray-500 mb-2">Model Name</label>
-              <input
-                className="w-full bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm"
-                value={model}
-                onChange={e => setModel(e.target.value)}
-                placeholder="llama3.2, mistral, etc."
-              />
-            </div>
-          </div>
           {!error && (
             <div>
               <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">Models</h3>

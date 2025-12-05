@@ -2,18 +2,28 @@ import { Send, StopCircle } from 'lucide-react';
 import { useConversationUI } from '../contexts/ConversationUIContext';
 import { useConversations } from '../contexts/ConversationsContext';
 import { useGlobalRef } from '../stores/GlobalRefStore';
+import { useConnection } from '../stores/ConnectionStore';
 
 export default ({ }) => {
+  const { modelSelectRef } = useGlobalRef();
+  const { currentModel } = useConnection();
   const { currentChatId } = useConversations();
   const {
     input,
     isGenerating,
     setInput,
-    sendMessage,
+    sendMessage: _sendMessage,
     stopGeneration
   } = useConversationUI();
 
   const { chatInputRef } = useGlobalRef();
+  const sendMessage = () => {
+    if (currentModel === null) {
+      modelSelectRef?.current?.focus();
+      return;
+    }
+    _sendMessage();
+  }
 
   return (
     <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">

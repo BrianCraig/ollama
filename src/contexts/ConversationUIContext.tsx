@@ -9,6 +9,7 @@ import {
 } from "../api/Ollama";
 import { useGlobalRef } from "../stores/GlobalRefStore";
 import { autoscroll, scrollToBottom } from "../utils/scrolling";
+import { useConnection } from "../stores/ConnectionStore";
 
 type ConversationUIState = {
   input: string;
@@ -25,14 +26,14 @@ type ConversationUIActions = {
 };
 
 export const useConversationUI = create<ConversationUIState & ConversationUIActions>((set, get) => {
-  const { chatInputRef, messagesRef } = useGlobalRef();
-
+  const { chatInputRef, messagesRef, modelSelectRef } = useGlobalRef();
+  const connectionStore = useConnection.getState();
   const conversationsStore = useConversations.getState();
   const settingsStore = useSettings.getState();
 
   const updateConvStore = useConversations.getState().updateCurrentChat;
 
-  // Keep currentConversation + settings always updated via subscriptions
+  // Keep stores always updated via subscriptions
   useConversations.subscribe(() => {
     Object.assign(conversationsStore, useConversations.getState());
   });
@@ -41,10 +42,19 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
     Object.assign(settingsStore, useSettings.getState());
   });
 
+  useConnection.subscribe(() => {
+    Object.assign(connectionStore, useConnection.getState());
+  })
+
   const streamResponse = async (
-    chatHistory: Message[],
-    modelOverride: string | null = null
+    chatHistory: Message[]
   ) => {
+    const model = connectionStore.currentModel; 
+    if (model === null) {
+      modelSelectRef?.current?.focus();
+      return;
+    }
+
     scrollToBottom(messagesRef);
     // also on the next frame to ensure scroll after new message added
     requestAnimationFrame(() => scrollToBottom(messagesRef));
@@ -52,7 +62,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
     const { currentChatId } = conversationsStore;
     if (!currentChatId) return;
 
-    const { url, model } = settingsStore.settings;
+    const { url } = settingsStore.settings;
     const controller = new AbortController();
 
     set({ abortController: controller, isGenerating: true });
@@ -62,7 +72,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: modelOverride || model,
+          model: model.model,
           messages: chatHistory,
           stream: true
         }),
@@ -80,7 +90,7 @@ export const useConversationUI = create<ConversationUIState & ConversationUIActi
         ...chat,
         messages: [
           ...chat.messages,
-          { role: "assistant", content: "", id: UUID(), createdAt: Date.now(), model: modelOverride || settingsStore.settings.model }
+          { role: "assistant", content: "", id: UUID(), createdAt: Date.now(), model: model.model }
         ]
       }));
 

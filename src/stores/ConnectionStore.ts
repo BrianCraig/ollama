@@ -16,8 +16,7 @@ export type ErrorRecord = {
 };
 
 /* Connection state (combine `connecting` + `error` to derive four states):
-   - connecting: true  + error: null   => Connecting for first time.
-   - connecting: true  + error: Error  => Reconnecting from error.
+   - connecting: true                  => Connecting.
    - connecting: false + error: null   => Connected correctly.
    - connecting: false + error: Error  => Waiting for user to try to reconnect.
 */
@@ -27,6 +26,10 @@ type ConnectionStore = {
 
   version: string | null;
   models: OllamaTagModel[];
+  currentModel: OllamaTagModel | null;
+
+  setCurrentModel: (m: OllamaTagModel | null) => void;
+  refreshModels: () => Promise<void>;
 
   reconnect: () => Promise<void>;
 };
@@ -65,7 +68,6 @@ export const useConnection = create<ConnectionStore>((set, get) => {
   };
 
   const reconnect = async () => {
-    // when starting reconnect attempt, mark connecting true and clear transient error
     set({ connecting: true, error: null });
     const settingsUrl = useSettings.getState().settings.url.replace(/\/+$/, "");
     const versionUrl = `${settingsUrl}/api/version`;
@@ -81,6 +83,7 @@ export const useConnection = create<ConnectionStore>((set, get) => {
         version: versionRaw.version,
         models: tagsRaw.models ?? [],
         error: null,
+        currentModel: null,
       });
     } catch (e: unknown) {
       const record = makeErrorRecord(e, versionUrl);
@@ -89,6 +92,36 @@ export const useConnection = create<ConnectionStore>((set, get) => {
         version: null,
         models: [],
         error: record,
+        currentModel: null,
+      });
+    }
+  };
+
+  const setCurrentModel = (m: OllamaTagModel | null) => {
+    set({ currentModel: m });
+  };
+
+  const refreshModels = async () => {
+    const settingsUrl = useSettings.getState().settings.url.replace(/\/+$/, "");
+    const tagsUrl = `${settingsUrl}/api/tags`;
+    try {
+      const tagsRaw = await fetchJsonWithTimeout(tagsUrl, 5000);
+      assertOllamaTagsResponse(tagsRaw);
+      const newModels = tagsRaw.models ?? [];
+      // preserve currentModel if a model with same digest exists in new list
+      const prev = get().currentModel;
+      const found = prev ? newModels.find((m: OllamaTagModel) => m.digest === prev.digest) ?? null : null;
+      set({
+        models: newModels,
+        currentModel: found,
+      });
+    } catch (e: unknown) {
+      const record = makeErrorRecord(e, tagsUrl);
+      set({
+        connecting: false,
+        models: [],
+        error: record,
+        currentModel: null,
       });
     }
   };
@@ -98,6 +131,9 @@ export const useConnection = create<ConnectionStore>((set, get) => {
     version: null,
     error: null,
     models: [],
+    currentModel: null,
+    setCurrentModel,
+    refreshModels,
     reconnect,
   } as ConnectionStore);
 

@@ -6,15 +6,34 @@ import {
   assertOllamaVersion,
 } from "../api/Ollama";
 
-export type ConnectionStatus = "Offline" | "Connecting" | "Connected";
+/**
+ * ConnectionStore records a lightweight status and a rich error record
+ * so the UI can present a clear diagnostic flow.
+ *
+ * reconnect(light?: boolean)
+ *  - light = true: only checks /api/version (fast, for quick tests)
+ *  - light = false: full reconnect (version + tags)
+ */
+
+export type ConnectionStatus = "idle" | "connecting" | "failed" | "ok";
+
+export type ErrorRecord = {
+  name: string;
+  message: string;
+  code?: string | number;
+  stack?: string;
+  timestamp: string;
+  urlAttempted: string;
+};
 
 type ConnectionStore = {
-  status: ConnectionStatus;
+  connectionStatus: ConnectionStatus;
   version: string | null;
-  error: string | null;
+  errorRecord: ErrorRecord | null;
   models: OllamaTagModel[];
 
-  reconnect: () => Promise<void>;
+  // trigger a reconnect; accepts optional light flag for just version check
+  reconnect: (light?: boolean) => Promise<void>;
 };
 
 async function fetchJsonWithTimeout(input: RequestInfo, timeout = 5000) {
@@ -32,40 +51,73 @@ async function fetchJsonWithTimeout(input: RequestInfo, timeout = 5000) {
 }
 
 export const useConnection = create<ConnectionStore>((set, get) => {
-  set({
-    status: "Offline",
-    version: null,
-    error: null,
-    models: [],
-    reconnect: async () => {
-      set({ status: "Connecting", error: null });
-      const settingsUrl = useSettings.getState().settings.url.replace(/\/+$/, "");
-      try {
-        const versionRaw = await fetchJsonWithTimeout(`${settingsUrl}/api/version`, 5000);
-        assertOllamaVersion(versionRaw);
-        const tagsRaw = await fetchJsonWithTimeout(`${settingsUrl}/api/tags`, 5000);
-        assertOllamaTagsResponse(tagsRaw);
+  const makeErrorRecord = (e: unknown, urlAttempted: string): ErrorRecord => {
+    if (e instanceof Error) {
+      return {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+        timestamp: new Date().toISOString(),
+        urlAttempted,
+      };
+    }
+    return {
+      name: "Error",
+      message: String(e),
+      timestamp: new Date().toISOString(),
+      urlAttempted,
+    };
+  };
 
-        set({
-          status: "Connected",
-          version: versionRaw.version,
-          models: tagsRaw.models ?? [],
-          error: null,
-        });
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        set({
-          status: "Offline",
-          version: null,
-          models: [],
-          error: msg,
-        });
+  const reconnect = async (light = false) => {
+    set({ connectionStatus: "connecting", errorRecord: null });
+    const settingsUrl = useSettings.getState().settings.url.replace(/\/+$/, "");
+    const versionUrl = `${settingsUrl}/api/version`;
+    try {
+      const versionRaw = await fetchJsonWithTimeout(versionUrl, 5000);
+      assertOllamaVersion(versionRaw);
+
+      if (light) {
+        // lightweight success; record ok and version but don't fetch tags
+        set({ connectionStatus: "ok", version: versionRaw.version, errorRecord: null });
+        console.debug("[ConnectionStore] reconnect (light) ok", { version: versionRaw.version, url: versionUrl });
+        return;
       }
-    },
+
+      const tagsRaw = await fetchJsonWithTimeout(`${settingsUrl}/api/tags`, 5000);
+      assertOllamaTagsResponse(tagsRaw);
+
+      set({
+        connectionStatus: "ok",
+        version: versionRaw.version,
+        models: tagsRaw.models ?? [],
+        errorRecord: null,
+      });
+      console.debug("[ConnectionStore] reconnect ok", { version: versionRaw.version });
+    } catch (e: unknown) {
+      const record = makeErrorRecord(e, versionUrl);
+      console.debug("[ConnectionStore] reconnect failed", record);
+      set({
+        connectionStatus: "failed",
+        version: null,
+        models: [],
+        errorRecord: record,
+      });
+    }
+  };
+
+  // initial state
+  set({
+    connectionStatus: "idle",
+    version: null,
+    errorRecord: null,
+    models: [],
+    reconnect,
   } as ConnectionStore);
 
+  // run an initial lightweight check immediately
   setTimeout(() => {
-    get().reconnect();
+    get().reconnect(true);
   }, 0);
 
   return get() as ConnectionStore;

@@ -29,17 +29,27 @@ type ConversationsState = {
 
   setPassword: (pwd: string) => void;
   login: () => Promise<boolean>;
-  createNewChat: () => void;
-  deleteChat: (id: string) => void;
-  setCurrentChatId: (id: string | null) => void;
+  createNewChat: () => void; 
+  setCurrentChatId: (id: string | null) => void; 
   updateCurrentChat: (fn: (chat: Chat) => Chat) => void;
+
+  createChat(title?: string): string;   // returns new chat ID
+  deleteChat(id: string): void;
+  setCurrentChat(id: string | null): void;
+
+  addMessage(msg: Partial<Message> & { role: Role; content: string }): Message;
+  updateMessage(id: string, patch: Partial<Message>): void;
+  deleteMessage(id: string): void;
+
+  updateChat(patch: Partial<Chat>): void;
+  renameChat(title: string): void;
 };
 
 const STORAGE_KEY = "ollama_secure_data";
 
 const { messagesRef, chatInputRef } = useGlobalRef();
 
-export const useConversations = create<ConversationsState>((set, get) => ({  
+export const useConversations = create<ConversationsState>((set, get) => ({
   conversations: {},
   currentChatId: null,
   isAuthenticated: false,
@@ -52,7 +62,6 @@ export const useConversations = create<ConversationsState>((set, get) => ({
     const encrypted = localStorage.getItem(STORAGE_KEY);
 
     if (!encrypted) {
-      // First-time use
       const empty = {};
       localStorage.setItem(
         STORAGE_KEY,
@@ -117,6 +126,113 @@ export const useConversations = create<ConversationsState>((set, get) => ({
 
     set({ conversations });
     save(conversations, get().password);
+  },
+
+  createChat: (title = "New Conversation") => {
+    const id = UUID();
+    const newChat: Chat = {
+      id,
+      title,
+      messages: [],
+      createdAt: Date.now(),
+    };
+
+    const conversations = { ...get().conversations, [id]: newChat };
+    set({ conversations, currentChatId: id });
+    save(conversations, get().password);
+
+    window.requestAnimationFrame(() => { scrollToBottom(messagesRef); });
+    chatInputRef.current?.focus();
+
+    return id;
+  },
+
+  setCurrentChat: (id: string | null) => {
+    set({ currentChatId: id });
+    window.requestAnimationFrame(() => { scrollToBottom(messagesRef); });
+    chatInputRef.current?.focus();
+    window.requestAnimationFrame(() => { chatInputRef.current?.focus(); });
+  },
+
+  addMessage: (msg) => {
+    let cid = get().currentChatId;
+    const conversations = { ...get().conversations };
+
+    if (!cid) {
+      cid = UUID();
+      const newChat: Chat = {
+        id: cid,
+        title: "New Conversation",
+        messages: [],
+        createdAt: Date.now(),
+      };
+      conversations[cid] = newChat;
+      set({ conversations, currentChatId: cid });
+    }
+
+    const message: Message = {
+      id: UUID(),
+      role: msg.role,
+      content: msg.content,
+      createdAt: Date.now(),
+      model: msg.model,
+    };
+
+    conversations[cid].messages = [...conversations[cid].messages, message];
+
+    set({ conversations, currentChatId: cid });
+    save(conversations, get().password);
+
+    window.requestAnimationFrame(() => { scrollToBottom(messagesRef); });
+    chatInputRef.current?.focus();
+
+    return message;
+  },
+
+  updateMessage: (id, patch) => {
+    const conversations = { ...get().conversations };
+    for (const cid in conversations) {
+      const msgs = conversations[cid].messages;
+      const idx = msgs.findIndex(m => m.id === id);
+      if (idx !== -1) {
+        const updatedMsgs = [...msgs];
+        updatedMsgs[idx] = { ...updatedMsgs[idx], ...patch };
+        conversations[cid] = { ...conversations[cid], messages: updatedMsgs };
+        set({ conversations });
+        save(conversations, get().password);
+        return;
+      }
+    }
+  },
+
+  deleteMessage: (id) => {
+    const conversations = { ...get().conversations };
+    for (const cid in conversations) {
+      const msgs = conversations[cid].messages;
+      const idx = msgs.findIndex(m => m.id === id);
+      if (idx !== -1) {
+        const updatedMsgs = [...msgs];
+        updatedMsgs.splice(idx, 1);
+        conversations[cid] = { ...conversations[cid], messages: updatedMsgs };
+        set({ conversations });
+        save(conversations, get().password);
+        return;
+      }
+    }
+  },
+
+  updateChat: (patch) => {
+    const id = get().currentChatId;
+    if (!id) return;
+    const conversations = { ...get().conversations };
+    const chat = conversations[id];
+    conversations[id] = { ...chat, ...patch };
+    set({ conversations });
+    save(conversations, get().password);
+  },
+
+  renameChat: (title) => {
+    get().updateCurrentChat((chat) => ({ ...chat, title }));
   },
 }));
 
